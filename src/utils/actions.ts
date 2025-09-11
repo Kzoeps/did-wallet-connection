@@ -3,10 +3,9 @@ import {
   ComAtprotoRepoGetRecord,
   ComAtprotoRepoListRecords,
 } from "@atproto/api";
-import type { SessionManager } from "@atproto/api/dist/session-manager";
 import type { OAuthSession } from "@atproto/oauth-client-browser";
 
-const formatListRecordsResponse = (
+export const formatListRecordsResponse = (
   response: ComAtprotoRepoListRecords.Response
 ) => {
   return response.data.records.map(record => ({

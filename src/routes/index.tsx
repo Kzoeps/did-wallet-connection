@@ -35,6 +35,7 @@ function App() {
   );
   const [attestationLoading, setAttestationLoading] = useState(false);
 
+
   // Verification state
   const [verified, setVerified] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
