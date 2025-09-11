@@ -1,8 +1,8 @@
 {
-  "client_id": "https://db998c180367.ngrok-free.app/client-metadata.json",
+  "client_id": "https://did-wallet-connection.vercel.app/client-metadata.json",
   "client_name": "GainForest",
-  "client_uri": "https://db998c180367.ngrok-free.app",
-  "redirect_uris": ["https://db998c180367.ngrok-free.app"],
+  "client_uri": "https://did-wallet-connection.vercel.app",
+  "redirect_uris": ["https://did-wallet-connection.vercel.app"],
   "scope": "atproto transition:generic",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],

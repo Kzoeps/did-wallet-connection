@@ -35,9 +35,9 @@ function App() {
   );
   const [attestationLoading, setAttestationLoading] = useState(false);
 
-
   // Verification state
-  const [verified, setVerified] = useState(false);
+  const [recordVerified, setRecordVerified] = useState(false);
+  const [connectedIsAttested, setConnectedIsAttested] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
 
   const canLogin = useMemo(() => handle.trim().length > 0, [handle]);
@@ -49,33 +49,61 @@ function App() {
   const handleVerification = useCallback(
     async (attestation: WalletAttestationTest) => {
       if (!session) {
-        setVerified(false);
+        setRecordVerified(false);
+        setConnectedIsAttested(false);
         return;
       }
       setVerifyLoading(true);
       try {
         const recovered = await recoverMessageAddress({
-          message: `${session.sub},${address}`,
+          message: `${session.sub},${attestation.address}`,
           signature: attestation.attestation as `0x${string}`,
         });
-        const recoveredChecksum = getAddress(recovered);
-        const recordChecksum = getAddress(attestation.address);
-        setVerified(recoveredChecksum === recordChecksum);
+        const recoveredAddress = getAddress(recovered);
+        const recordAddress = getAddress(attestation.address);
+
+        const isRecordTrue = recordAddress === recoveredAddress;
+        setRecordVerified(isRecordTrue);
+
+        const matchesConnected =
+          isRecordTrue &&
+          isConnected &&
+          !!address &&
+          getAddress(address as `0x${string}`) === recordAddress;
+
+        setConnectedIsAttested(matchesConnected);
       } catch {
-        setVerified(false);
+        setRecordVerified(false);
+        setConnectedIsAttested(false);
       } finally {
         setVerifyLoading(false);
       }
     },
-    [session, address]
+    [session, address, isConnected]
   );
+
+  // Keep the second flag up-to-date if wallet connection changes
+  useEffect(() => {
+    if (!attestationRecord) {
+      setConnectedIsAttested(false);
+      return;
+    }
+    const recordAddress = getAddress(attestationRecord.address);
+    const matchesConnected =
+      recordVerified &&
+      isConnected &&
+      !!address &&
+      getAddress(address as `0x${string}`) === recordAddress;
+    setConnectedIsAttested(matchesConnected);
+  }, [address, isConnected, attestationRecord, recordVerified]);
 
   // ---- Fetch attestation from repo ----
   const fetchAttestation = useCallback(async () => {
     if (!session) {
       setAttestedAddress(null);
       setAttestationRecord(null);
-      setVerified(false);
+      setRecordVerified(false);
+      setConnectedIsAttested(false);
       return;
     }
     setAttestationLoading(true);
@@ -88,12 +116,14 @@ function App() {
       } else {
         setAttestationRecord(null);
         setAttestedAddress(null);
-        setVerified(false);
+        setRecordVerified(false);
+        setConnectedIsAttested(false);
       }
     } catch {
       setAttestationRecord(null);
       setAttestedAddress(null);
-      setVerified(false);
+      setRecordVerified(false);
+      setConnectedIsAttested(false);
     } finally {
       setAttestationLoading(false);
     }
@@ -204,39 +234,75 @@ function App() {
                         Checking…
                       </span>
                     ) : attestedAddress ? (
-                      verified ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-7.071 7.07a1 1 0 01-1.414 0L3.293 9.848a1 1 0 111.414-1.415l3.1 3.101 6.364-6.364a1 1 0 011.536.123z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          Verified
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 00-1.5 0v5a.75.75 0 001.5 0v-5zM10 14a1 1 0 100 2 1 1 0 000-2z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          Unverified
-                        </span>
-                      )
+                      <div className="flex items-center gap-2">
+                        {recordVerified ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-7.071 7.07a1 1 0 01-1.414 0L3.293 9.848a1 1 0 111.414-1.415l3.1 3.101 6.364-6.364a1 1 0 011.536.123z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            wallet ownership verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 00-1.5 0v5a.75.75 0 001.5 0v-5zM10 14a1 1 0 100 2 1 1 0 000-2z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Record unverified
+                          </span>
+                        )}
+
+                        {connectedIsAttested ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-7.071 7.07a1 1 0 01-1.414 0L3.293 9.848a1 1 0 111.414-1.415l3.1 3.101 6.364-6.364a1 1 0 011.536.123z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Current wallet = attested wallet
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 00-1.5 0v5a.75.75 0 001.5 0v-5zM10 14a1 1 0 100 2 1 1 0 000-2z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Current wallet != attested wallet 
+                          </span>
+                        )}
+                      </div>
                     ) : null}
                   </div>
 
@@ -253,18 +319,20 @@ function App() {
                         </p>
                       )}
 
-                      {!verifyLoading && !verified && attestationRecord && (
-                        <div className="mt-3">
-                          <button
-                            onClick={() =>
-                              handleVerification(attestationRecord)
-                            }
-                            className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
-                          >
-                            Re-verify
-                          </button>
-                        </div>
-                      )}
+                      {!verifyLoading &&
+                        !recordVerified &&
+                        attestationRecord && (
+                          <div className="mt-3">
+                            <button
+                              onClick={() =>
+                                handleVerification(attestationRecord)
+                              }
+                              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
+                            >
+                              Re-verify
+                            </button>
+                          </div>
+                        )}
                     </>
                   ) : (
                     <p className="text-sm text-gray-500 mt-2">
