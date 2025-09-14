@@ -59,8 +59,6 @@ function RouteComponent() {
   const [handle, setHandle] = useState("");
 
   // Attestation state
-  const [attestationRecord, setAttestationRecord] =
-    useState<PasskeyWalletRes | null>(null);
   const [attestedAddress, setAttestedAddress] = useState<`0x${string}` | null>(
     null
   );
@@ -101,7 +99,6 @@ function RouteComponent() {
   const fetchAttestation = useCallback(async () => {
     if (!session) {
       setAttestedAddress(null);
-      setAttestationRecord(null);
       setRecordVerified(false);
       return;
     }
@@ -109,18 +106,15 @@ function RouteComponent() {
     try {
       const rec = await getWalletAttestation(session);
       if (rec?.address) {
-        setAttestationRecord(rec);
         setAttestedAddress(rec.address);
         // If there's a record, we can prompt login/verify to refresh the Privy session
         // (kept from your original flow)
         handleCreateOrVerifyPasskey("login");
       } else {
-        setAttestationRecord(null);
         setAttestedAddress(null);
         setRecordVerified(false);
       }
     } catch {
-      setAttestationRecord(null);
       setAttestedAddress(null);
       setRecordVerified(false);
     } finally {
