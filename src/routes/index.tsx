@@ -311,6 +311,16 @@ function RouteComponent() {
                           >
                             Refresh status
                           </button>
+                          <button
+                            onClick={async () => {
+                              if (!session) return;
+                              await addWalletAddress(session, { address: "" });
+                              await fetchAttestation();
+                            }}
+                            className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:opacity-95 border border-red-600 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          >
+                            Reset Address on Record
+                          </button>
                         </div>
                       </>
                     ) : (
