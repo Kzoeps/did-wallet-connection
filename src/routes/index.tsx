@@ -108,7 +108,6 @@ function RouteComponent() {
         setAttestedAddress(rec.address);
         // If there's a record, we can prompt login/verify to refresh the Privy session
         // (kept from your original flow)
-        handleCreateOrVerifyPasskey("login");
       } else {
         setAttestedAddress(null);
         setRecordVerified(false);
