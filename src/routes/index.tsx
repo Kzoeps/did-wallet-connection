@@ -39,12 +39,11 @@ function RouteComponent() {
   const [handle, setHandle] = useState("");
 
   // Link action UI state
-  const [linking, setLinking] = useState(false);
-  const [linkSuccess, setLinkSuccess] = useState<string | null>(null);
-  const [linkError, setLinkError] = useState<string | null>(null);
+  // const [linking, setLinking] = useState(false);
+  // const [linkSuccess, setLinkSuccess] = useState<string | null>(null);
+  // const [linkError, setLinkError] = useState<string | null>(null);
 
   // Attestation state
-  const [hasAttestation, setHasAttestation] = useState<string>("pending");
   const [attestationRecord, setAttestationRecord] =
     useState<PasskeyWalletRes | null>(null);
   const [attestedAddress, setAttestedAddress] = useState<`0x${string}` | null>(
@@ -58,12 +57,13 @@ function RouteComponent() {
   const [verifyLoading, setVerifyLoading] = useState(false);
 
   const canLogin = useMemo(() => handle.trim().length > 0, [handle]);
-  const linkCta = attestedAddress
-    ? "Update linked wallet"
-    : "Link wallet to DID";
+  // const linkCta = attestedAddress
+  //   ? "Update linked wallet"
+  //   : "Link wallet to DID";
 
   useEffect(() => {
     if (user) console.log(user);
+    if (user) setVerifyLoading(false);
   }, [user]);
 
   // ---- Fetch attestation from repo ----
@@ -82,7 +82,6 @@ function RouteComponent() {
       console.log(rec);
       if (rec?.address) {
         setAttestationRecord(rec);
-        setHasAttestation("true");
         console.log(user, "from the wallet attestation");
         if (!user) {
           console.log("loggin in with passkey");
@@ -93,7 +92,8 @@ function RouteComponent() {
         setAttestationRecord(null);
         setAttestedAddress(null);
         setRecordVerified(false);
-        setHasAttestation("false");
+        console.log("signing up with passkey");
+        await signupWithPasskey();
         setConnectedIsAttested(false);
       }
     } catch (e: unknown) {
@@ -104,7 +104,6 @@ function RouteComponent() {
       if (typeof e === "object" && e !== null && "error" in e) {
         const err = e as { error: string };
         if (err.error === "RecordNotFound") {
-          setHasAttestation("false");
           console.log("signing up with passkey");
           await signupWithPasskey();
         }
@@ -305,7 +304,7 @@ function RouteComponent() {
                 <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
                 {/* Link / Update button */}
-                <button
+                {/* <button
                   onClick={() => undefined}
                   disabled={linking || !isConnected || !address}
                   className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-medium text-white bg-gradient-to-r from-emerald-500 to-green-600 shadow-md hover:opacity-95 transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -337,15 +336,15 @@ function RouteComponent() {
                   ) : (
                     linkCta
                   )}
-                </button>
+                </button> */}
 
                 {/* Status lines */}
-                {linkSuccess && (
+                {/* {linkSuccess && (
                   <p className="text-sm text-emerald-600">{linkSuccess}</p>
                 )}
                 {linkError && (
                   <p className="text-sm text-red-600">{linkError}</p>
-                )}
+                )} */}
                 {!isConnected && (
                   <p className="text-xs text-gray-500">
                     Connect your wallet first using the button above.
