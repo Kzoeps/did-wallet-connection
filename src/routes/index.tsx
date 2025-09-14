@@ -24,7 +24,12 @@ function RouteComponent() {
   // privy atuoamatci creation doesnt seemt o work might be cause react 19 or might not be couldf igureit out
   const { createWallet } = useCreateWallet({
     onSuccess: async ({ wallet }) => {
+      console.log("wallet created adding to add wallet address");
+      console.log(wallet);
       if (wallet.address && session) {
+        console.log("adding to wallet address now", {
+          address: wallet.address,
+        });
         await addWalletAddress(session, { address: wallet.address });
         await fetchAttestation();
       }
@@ -37,6 +42,7 @@ function RouteComponent() {
   const { signupWithPasskey } = useSignupWithPasskey({
     onComplete: async ({ user: signedupUser }) => {
       // After successful signup, persist wallet on record
+      console.log(signedupUser);
       if (
         signedupUser &&
         signedupUser?.linkedAccounts?.[0]?.type === "passkey" &&
