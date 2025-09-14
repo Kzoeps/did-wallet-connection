@@ -24,8 +24,10 @@ function RouteComponent() {
   const { user } = useUser();
   const { signupWithPasskey } = useSignupWithPasskey({
     onComplete: async ({ user }) => {
+      console.log(user, "user from on complete");
       if (user) {
         if (user?.linkedAccounts?.[0]?.type === "passkey" && session) {
+          console.log("attested address");
           setAttestedAddress((user?.wallet?.address as `0x${string}`) || null);
           await addWalletAddress(session, {
             address: user?.wallet?.address || "",
