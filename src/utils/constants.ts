@@ -1,4 +1,4 @@
-const baseUrl = "https://did-wallet-connection.vercel.app";
+const baseUrl = "https://c36e935461c3.ngrok-free.app";
 export const METADATA = {
   client_id: `${baseUrl}/client-metadata.json`,
   client_name: "GainForest",

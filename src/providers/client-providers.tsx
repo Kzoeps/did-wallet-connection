@@ -3,6 +3,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
+import { PrivyProvider } from "@privy-io/react-auth";
 import { arbitrum, base, mainnet, optimism, polygon } from "wagmi/chains";
 import { BlueskyAuthProvider } from "./oauth-provider";
 const config = getDefaultConfig({
@@ -19,7 +20,14 @@ export default function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <BlueskyAuthProvider>{children}</BlueskyAuthProvider>
+          <BlueskyAuthProvider>
+            <PrivyProvider
+              appId="cmfgrvs5i00e8ie0c1sdga175"
+              clientId="client-WY6QhUSpN3KxhqYQ85qPTAD4RD1yvgPbTK7Dqo583z11A"
+            >
+              {children}
+            </PrivyProvider>
+          </BlueskyAuthProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

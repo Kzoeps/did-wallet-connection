@@ -15,6 +15,7 @@
     "@atproto/lex-cli": "^0.9.5",
     "@atproto/lexicon": "^0.5.1",
     "@atproto/oauth-client-browser": "^0.3.32",
+    "@privy-io/react-auth": "^2.24.0",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/react-devtools": "^0.2.2",

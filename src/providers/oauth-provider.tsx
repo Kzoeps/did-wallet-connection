@@ -13,6 +13,7 @@ import {
   type OAuthSession,
 } from "@atproto/oauth-client-browser";
 import { METADATA } from "@/utils/constants";
+import { usePrivy } from "@privy-io/react-auth";
 
 /**
  * Context shape
@@ -58,6 +59,7 @@ export function BlueskyAuthProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<string | undefined>(undefined);
   const [error, setError] = useState<unknown>(undefined);
   const [isReady, setIsReady] = useState(false);
+  const { logout } = usePrivy();
 
   // Keep a stable client instance
   const clientRef = useRef<BrowserOAuthClient | null>(null);
@@ -105,6 +107,7 @@ export function BlueskyAuthProvider({ children }: PropsWithChildren) {
   );
 
   const signOut = useCallback(async () => {
+    await logout();
     const browserClient = clientRef.current;
     if (!browserClient) return;
     if (session) {

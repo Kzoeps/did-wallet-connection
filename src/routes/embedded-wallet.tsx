@@ -1,24 +1,42 @@
-import { createFileRoute } from "@tanstack/react-router";
-import "../App.css";
 import { useBlueskyAuth } from "@/providers/oauth-provider";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useSignMessage } from "wagmi";
 import {
-  createWalletAttestation,
+  addPasskeyCredentialId,
   getWalletAttestation,
-  type WalletAttestationTest,
-} from "@/utils/actions";
-import { getAddress, recoverMessageAddress } from "viem";
+  type PasskeyWalletRes,
+} from "@/utils/passkey-actions";
+import {
+  useLoginWithPasskey,
+  usePrivy,
+  useSignupWithPasskey,
+  useUser,
+} from "@privy-io/react-auth";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getAddress } from "viem";
+import { useAccount } from "wagmi";
 
-export const Route = createFileRoute("/")({
-  component: App,
+export const Route = createFileRoute("/embedded-wallet")({
+  component: RouteComponent,
 });
 
-function App() {
+function RouteComponent() {
   const { signIn, signOut, session, isReady, state } = useBlueskyAuth();
+  const { logout } = usePrivy();
   const { address, isConnected } = useAccount();
-  const { signMessageAsync } = useSignMessage();
+  const { user } = useUser();
+  const { signupWithPasskey } = useSignupWithPasskey({
+    onComplete: async ({ user }) => {
+      console.log(user);
+      if (user) {
+        if (user?.linkedAccounts?.[0]?.type === "passkey" && session) {
+          const credentialId = user.linkedAccounts[0].credentialId;
+          await addPasskeyCredentialId(session, { credentialId });
+        }
+      }
+    },
+  });
+  const { loginWithPasskey } = useLoginWithPasskey();
 
   const [handle, setHandle] = useState("");
 
@@ -28,8 +46,9 @@ function App() {
   const [linkError, setLinkError] = useState<string | null>(null);
 
   // Attestation state
+  const [hasAttestation, setHasAttestation] = useState<string>("pending");
   const [attestationRecord, setAttestationRecord] =
-    useState<WalletAttestationTest | null>(null);
+    useState<PasskeyWalletRes | null>(null);
   const [attestedAddress, setAttestedAddress] = useState<`0x${string}` | null>(
     null
   );
@@ -45,42 +64,9 @@ function App() {
     ? "Update linked wallet"
     : "Link wallet to DID";
 
-  // ---- Verification logic (uses attestation.address and attestation.signature) ----
-  const handleVerification = useCallback(
-    async (attestation: WalletAttestationTest) => {
-      if (!session) {
-        setRecordVerified(false);
-        setConnectedIsAttested(false);
-        return;
-      }
-      setVerifyLoading(true);
-      try {
-        const recovered = await recoverMessageAddress({
-          message: `${session.sub},${attestation.address}`,
-          signature: attestation.attestation as `0x${string}`,
-        });
-        const recoveredAddress = getAddress(recovered);
-        const recordAddress = getAddress(attestation.address);
-
-        const isRecordTrue = recordAddress === recoveredAddress;
-        setRecordVerified(isRecordTrue);
-
-        const matchesConnected =
-          isRecordTrue &&
-          isConnected &&
-          !!address &&
-          getAddress(address as `0x${string}`) === recordAddress;
-
-        setConnectedIsAttested(matchesConnected);
-      } catch {
-        setRecordVerified(false);
-        setConnectedIsAttested(false);
-      } finally {
-        setVerifyLoading(false);
-      }
-    },
-    [session, address, isConnected]
-  );
+  useEffect(() => {
+    if (user) console.log(user);
+  }, [user]);
 
   // Keep the second flag up-to-date if wallet connection changes
   useEffect(() => {
@@ -111,50 +97,38 @@ function App() {
       const rec = await getWalletAttestation(session);
       if (rec?.address) {
         setAttestationRecord(rec);
+        setHasAttestation("true");
+        if (!user) loginWithPasskey();
         setAttestedAddress(rec.address as `0x${string}`);
-        await handleVerification(rec);
       } else {
         setAttestationRecord(null);
         setAttestedAddress(null);
         setRecordVerified(false);
+        setHasAttestation("false");
         setConnectedIsAttested(false);
       }
-    } catch {
+    } catch (e: unknown) {
       setAttestationRecord(null);
       setAttestedAddress(null);
       setRecordVerified(false);
       setConnectedIsAttested(false);
+      if (typeof e === "object" && e !== null && "error" in e) {
+        const err = e as { error: string };
+        if (err.error === "RecordNotFound") {
+          setHasAttestation("false");
+          console.log("signing up with passkey");
+          signupWithPasskey();
+        }
+      }
     } finally {
       setAttestationLoading(false);
     }
-  }, [session, handleVerification]);
+  }, [session]);
 
   // initial fetch when session becomes available
   useEffect(() => {
     void fetchAttestation();
   }, [fetchAttestation]);
-
-  // ---- Link / Update wallet flow ----
-  const handleWalletConnect = async () => {
-    if (!(session && address && isConnected) || linking) return;
-    setLinking(true);
-    setLinkSuccess(null);
-    setLinkError(null);
-
-    try {
-      const message = `${session.sub},${address}`;
-      const attestation = await signMessageAsync({ message });
-      await createWalletAttestation(session, { address, attestation });
-
-      // Re-fetch from repo to reflect canonical record and re-verify
-      await fetchAttestation();
-      setLinkSuccess("Wallet linked to DID successfully.");
-    } catch (err: any) {
-      setLinkError(err?.message ?? "Failed to link wallet. Please try again.");
-    } finally {
-      setLinking(false);
-    }
-  };
 
   // UI helpers
   const connectedVsRecordNote =
@@ -171,7 +145,6 @@ function App() {
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 tracking-tight">
             Bluesky Login
           </h1>
-          <ConnectButton />
         </header>
 
         <main className="relative">
@@ -324,9 +297,7 @@ function App() {
                         attestationRecord && (
                           <div className="mt-3">
                             <button
-                              onClick={() =>
-                                handleVerification(attestationRecord)
-                              }
+                              onClick={() => undefined}
                               className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
                             >
                               Re-verify
@@ -345,7 +316,7 @@ function App() {
 
                 {/* Link / Update button */}
                 <button
-                  onClick={handleWalletConnect}
+                  onClick={() => undefined}
                   disabled={linking || !isConnected || !address}
                   className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-medium text-white bg-gradient-to-r from-emerald-500 to-green-600 shadow-md hover:opacity-95 transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
