@@ -22,28 +22,26 @@ function RouteComponent() {
   const { signIn, signOut, session, isReady, state } = useBlueskyAuth();
   const { address, isConnected } = useAccount();
   const { user } = useUser();
+
+  // --- Passkey hooks ---
   const { signupWithPasskey } = useSignupWithPasskey({
     onComplete: async ({ user }) => {
-      console.log(user, "user from on complete");
-      if (user) {
-        if (user?.linkedAccounts?.[0]?.type === "passkey" && session) {
-          console.log("attested address");
-          setAttestedAddress((user?.wallet?.address as `0x${string}`) || null);
-          await addWalletAddress(session, {
-            address: user?.wallet?.address || "",
-          });
-        }
+      // After successful signup, persist wallet on record
+      if (user && user?.linkedAccounts?.[0]?.type === "passkey" && session) {
+        const newAddr = (user?.wallet?.address as `0x${string}`) || null;
+        setAttestedAddress(newAddr);
+        await addWalletAddress(session, {
+          address: user?.wallet?.address || "",
+        });
+        // refresh the attestation record so UI updates
+        await fetchAttestation();
       }
     },
   });
   const { loginWithPasskey } = useLoginWithPasskey();
 
+  // --- Local state ---
   const [handle, setHandle] = useState("");
-
-  // Link action UI state
-  // const [linking, setLinking] = useState(false);
-  // const [linkSuccess, setLinkSuccess] = useState<string | null>(null);
-  // const [linkError, setLinkError] = useState<string | null>(null);
 
   // Attestation state
   const [attestationRecord, setAttestationRecord] =
@@ -59,16 +57,12 @@ function RouteComponent() {
   const [verifyLoading, setVerifyLoading] = useState(false);
 
   const canLogin = useMemo(() => handle.trim().length > 0, [handle]);
-  // const linkCta = attestedAddress
-  //   ? "Update linked wallet"
-  //   : "Link wallet to DID";
 
   useEffect(() => {
-    if (user) console.log(user);
     if (user) setVerifyLoading(false);
   }, [user]);
 
-  // ---- Fetch attestation from repo ----
+  // ---- Fetch attestation from repo (NO WebAuthn calls here) ----
   const fetchAttestation = useCallback(async () => {
     if (!session) {
       setAttestedAddress(null);
@@ -79,46 +73,78 @@ function RouteComponent() {
     }
     setAttestationLoading(true);
     try {
-      console.log("FETCHING ATTESTATION");
       const rec = await getWalletAttestation(session);
-      console.log(rec);
       if (rec?.address) {
         setAttestationRecord(rec);
-        console.log(user, "from the wallet attestation");
-        if (!user) {
-          console.log("loggin in with passkey");
-          await loginWithPasskey();
-        }
         setAttestedAddress(rec.address);
+        // If user has a connected wallet, compare it to the attested one
+        if (isConnected && address && rec.address) {
+          setConnectedIsAttested(
+            getAddress(address as `0x${string}`) === getAddress(rec.address)
+          );
+        } else {
+          setConnectedIsAttested(false);
+        }
       } else {
+        // No record yet
         setAttestationRecord(null);
         setAttestedAddress(null);
         setRecordVerified(false);
-        console.log("signing up with passkey");
-        await signupWithPasskey();
         setConnectedIsAttested(false);
       }
-    } catch (e: unknown) {
+    } catch (e) {
+      // Treat any error as no record/unknown state; surface via UI copy
       setAttestationRecord(null);
       setAttestedAddress(null);
       setRecordVerified(false);
       setConnectedIsAttested(false);
-      if (typeof e === "object" && e !== null && "error" in e) {
-        const err = e as { error: string };
-        if (err.error === "RecordNotFound") {
-          console.log("signing up with passkey");
-          await signupWithPasskey();
-        }
-      }
     } finally {
       setAttestationLoading(false);
     }
-  }, [session, user]);
+  }, [session, isConnected, address]);
 
-  // initial fetch when session becomes available
+  // Initial & on-session-change fetch
   useEffect(() => {
     void fetchAttestation();
   }, [fetchAttestation]);
+
+  // ---- User-gesture handlers for WebAuthn ----
+  const handleCreateOrVerifyPasskey = useCallback(async () => {
+    // Gate on readiness & session
+    if (!isReady || !session) return;
+    setVerifyLoading(true);
+    try {
+      if (attestationRecord) {
+        // Existing record → verify/login
+        await loginWithPasskey();
+      } else {
+        // No record → create/register
+        await signupWithPasskey();
+      }
+      // After success, re-fetch to update view
+      await fetchAttestation();
+    } finally {
+      setVerifyLoading(false);
+    }
+  }, [
+    attestationRecord,
+    loginWithPasskey,
+    signupWithPasskey,
+    fetchAttestation,
+    isReady,
+    session,
+  ]);
+
+  const handleReverify = useCallback(async () => {
+    if (!isReady || !session) return;
+    setVerifyLoading(true);
+    try {
+      await loginWithPasskey();
+      await fetchAttestation();
+    } finally {
+      setVerifyLoading(false);
+    }
+  }, [loginWithPasskey, fetchAttestation, isReady, session]);
 
   // UI helpers
   const connectedVsRecordNote =
@@ -283,70 +309,48 @@ function RouteComponent() {
                         </p>
                       )}
 
-                      {!verifyLoading &&
-                        !recordVerified &&
-                        attestationRecord && (
-                          <div className="mt-3">
-                            <button
-                              onClick={() => undefined}
-                              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
-                            >
-                              Re-verify
-                            </button>
-                          </div>
+                      {/* Action row */}
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {!recordVerified && (
+                          <button
+                            onClick={handleReverify}
+                            disabled={verifyLoading}
+                            className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:opacity-95 border border-indigo-600 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60"
+                          >
+                            Verify with Passkey
+                          </button>
                         )}
+                        <button
+                          onClick={() => fetchAttestation()}
+                          className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
+                        >
+                          Refresh status
+                        </button>
+                      </div>
                     </>
                   ) : (
-                    <p className="text-sm text-gray-500 mt-2">
-                      None linked yet.
-                    </p>
+                    <>
+                      <p className="text-sm text-gray-500 mt-2">
+                        None linked yet.
+                      </p>
+                      <div className="mt-3">
+                        <button
+                          onClick={handleCreateOrVerifyPasskey}
+                          disabled={
+                            verifyLoading || !isReady || attestationLoading
+                          }
+                          className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:opacity-95 border border-emerald-600 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-60"
+                        >
+                          Create Passkey & Link Wallet
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
 
                 <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-                {/* Link / Update button */}
-                {/* <button
-                  onClick={() => undefined}
-                  disabled={linking || !isConnected || !address}
-                  className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-medium text-white bg-gradient-to-r from-emerald-500 to-green-600 shadow-md hover:opacity-95 transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {linking ? (
-                    <span className="inline-flex items-center gap-2">
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <circle
-                          className="opacity-30"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          d="M22 12a10 10 0 0 1-10 10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      Linking…
-                    </span>
-                  ) : (
-                    linkCta
-                  )}
-                </button> */}
-
-                {/* Status lines */}
-                {/* {linkSuccess && (
-                  <p className="text-sm text-emerald-600">{linkSuccess}</p>
-                )}
-                {linkError && (
-                  <p className="text-sm text-red-600">{linkError}</p>
-                )} */}
+                {/* Wallet connection hint */}
                 {!isConnected && (
                   <p className="text-xs text-gray-500">
                     Connect your wallet first using the button above.
@@ -412,3 +416,5 @@ function RouteComponent() {
     </div>
   );
 }
+
+export default RouteComponent;
