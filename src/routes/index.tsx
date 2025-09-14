@@ -5,6 +5,7 @@ import {
   type PasskeyWalletRes,
 } from "@/utils/passkey-actions";
 import {
+  useCreateWallet,
   useLoginWithPasskey,
   useSignupWithPasskey,
   useUser,
@@ -20,28 +21,28 @@ export const Route = createFileRoute("/")({
 
 function RouteComponent() {
   const { signIn, signOut, session, isReady, state } = useBlueskyAuth();
+  // privy atuoamatci creation doesnt seemt o work might be cause react 19 or might not be couldf igureit out
+  const { createWallet } = useCreateWallet({
+    onSuccess: async ({ wallet }) => {
+      if (wallet.address && session) {
+        await addWalletAddress(session, { address: wallet.address });
+        await fetchAttestation();
+      }
+    },
+  });
   const { address, isConnected } = useAccount();
   const { user } = useUser();
 
   // --- Passkey hooks ---
   const { signupWithPasskey } = useSignupWithPasskey({
     onComplete: async ({ user: signedupUser }) => {
-      console.log(signedupUser);
       // After successful signup, persist wallet on record
       if (
         signedupUser &&
         signedupUser?.linkedAccounts?.[0]?.type === "passkey" &&
         session
       ) {
-        const newAddr =
-          (signedupUser?.wallet?.address as `0x${string}`) || null;
-        setAttestedAddress(newAddr);
-        console.log("adding wallet address");
-        await addWalletAddress(session, {
-          address: signedupUser?.wallet?.address || "",
-        });
-        // refresh the attestation record so UI updates
-        await fetchAttestation();
+        await createWallet();
       }
     },
   });
