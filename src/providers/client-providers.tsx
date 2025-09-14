@@ -20,21 +20,19 @@ export default function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <BlueskyAuthProvider>
-            <PrivyProvider
-              appId="cmfgrvs5i00e8ie0c1sdga175"
-              clientId="client-WY6QhUSpN3KxhqYQ85qPTAD4RD1yvgPbTK7Dqo583z11A"
-              config={{
-                embeddedWallets: {
-                  ethereum: {
-                    createOnLogin: "all-users",
-                  },
+          <PrivyProvider
+            appId="cmfgrvs5i00e8ie0c1sdga175"
+            clientId="client-WY6QhUSpN3KxhqYQ85qPTAD4RD1yvgPbTK7Dqo583z11A"
+            config={{
+              embeddedWallets: {
+                ethereum: {
+                  createOnLogin: "all-users",
                 },
-              }}
-            >
-              {children}
-            </PrivyProvider>
-          </BlueskyAuthProvider>
+              },
+            }}
+          >
+            <BlueskyAuthProvider>{children}</BlueskyAuthProvider>
+          </PrivyProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
