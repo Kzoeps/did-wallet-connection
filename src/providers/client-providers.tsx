@@ -24,6 +24,13 @@ export default function Providers({ children }: { children: ReactNode }) {
             <PrivyProvider
               appId="cmfgrvs5i00e8ie0c1sdga175"
               clientId="client-WY6QhUSpN3KxhqYQ85qPTAD4RD1yvgPbTK7Dqo583z11A"
+              config={{
+                embeddedWallets: {
+                  ethereum: {
+                    createOnLogin: "all-users",
+                  },
+                },
+              }}
             >
               {children}
             </PrivyProvider>
