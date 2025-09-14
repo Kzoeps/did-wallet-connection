@@ -21,12 +21,12 @@ const formatGetRecordResponse = (
 };
 
 export interface PasskeyWalletTest {
-  credentialId: string;
+  address: string;
 }
 
 const WALLET_COLLECTION = "com.hypercert.walletPasskeyTest";
 
-export async function addPasskeyCredentialId(
+export async function addWalletAddress(
   session: OAuthSession,
   payload: PasskeyWalletTest
 ) {
@@ -51,7 +51,7 @@ export async function addPasskeyCredentialId(
 }
 export type PasskeyWalletRes = {
   $type: string;
-  address: string;
+  address: `0x${string}`;
   uri: string;
 };
 

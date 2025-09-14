@@ -9,12 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as EmbeddedWalletRouteImport } from './routes/embedded-wallet'
+import { Route as BringYourOwnWalletRouteImport } from './routes/bring-your-own-wallet'
 import { Route as IndexRouteImport } from './routes/index'
 
-const EmbeddedWalletRoute = EmbeddedWalletRouteImport.update({
-  id: '/embedded-wallet',
-  path: '/embedded-wallet',
+const BringYourOwnWalletRoute = BringYourOwnWalletRouteImport.update({
+  id: '/bring-your-own-wallet',
+  path: '/bring-your-own-wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,37 +25,37 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/embedded-wallet': typeof EmbeddedWalletRoute
+  '/bring-your-own-wallet': typeof BringYourOwnWalletRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/embedded-wallet': typeof EmbeddedWalletRoute
+  '/bring-your-own-wallet': typeof BringYourOwnWalletRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/embedded-wallet': typeof EmbeddedWalletRoute
+  '/bring-your-own-wallet': typeof BringYourOwnWalletRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/embedded-wallet'
+  fullPaths: '/' | '/bring-your-own-wallet'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/embedded-wallet'
-  id: '__root__' | '/' | '/embedded-wallet'
+  to: '/' | '/bring-your-own-wallet'
+  id: '__root__' | '/' | '/bring-your-own-wallet'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  EmbeddedWalletRoute: typeof EmbeddedWalletRoute
+  BringYourOwnWalletRoute: typeof BringYourOwnWalletRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/embedded-wallet': {
-      id: '/embedded-wallet'
-      path: '/embedded-wallet'
-      fullPath: '/embedded-wallet'
-      preLoaderRoute: typeof EmbeddedWalletRouteImport
+    '/bring-your-own-wallet': {
+      id: '/bring-your-own-wallet'
+      path: '/bring-your-own-wallet'
+      fullPath: '/bring-your-own-wallet'
+      preLoaderRoute: typeof BringYourOwnWalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,7 +70,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  EmbeddedWalletRoute: EmbeddedWalletRoute,
+  BringYourOwnWalletRoute: BringYourOwnWalletRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
