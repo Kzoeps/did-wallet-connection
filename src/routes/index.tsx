@@ -25,13 +25,20 @@ function RouteComponent() {
 
   // --- Passkey hooks ---
   const { signupWithPasskey } = useSignupWithPasskey({
-    onComplete: async ({ user }) => {
+    onComplete: async ({ user: signedupUser }) => {
+      console.log(signedupUser);
       // After successful signup, persist wallet on record
-      if (user && user?.linkedAccounts?.[0]?.type === "passkey" && session) {
-        const newAddr = (user?.wallet?.address as `0x${string}`) || null;
+      if (
+        signedupUser &&
+        signedupUser?.linkedAccounts?.[0]?.type === "passkey" &&
+        session
+      ) {
+        const newAddr =
+          (signedupUser?.wallet?.address as `0x${string}`) || null;
         setAttestedAddress(newAddr);
+        console.log("adding wallet address");
         await addWalletAddress(session, {
-          address: user?.wallet?.address || "",
+          address: signedupUser?.wallet?.address || "",
         });
         // refresh the attestation record so UI updates
         await fetchAttestation();
