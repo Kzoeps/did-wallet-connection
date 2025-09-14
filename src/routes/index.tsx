@@ -43,20 +43,27 @@ function RouteComponent() {
     onComplete: async ({ user: signedupUser }) => {
       // After successful signup, persist wallet on record
       console.log(signedupUser);
+      console.log(signedupUser, session);
+      console.log("successfully created user with passkey");
       if (
         signedupUser &&
         signedupUser?.linkedAccounts?.[0]?.type === "passkey" &&
         session
       ) {
-        // onsuccvess hook doesnt seem to work properoly with 19
-        const wallet = await createWallet();
-        console.log("created wallet", wallet);
-        console.log("adding wallte address");
-        const res = await addWalletAddress(session, {
-          address: wallet.address,
-        });
-        console.log("ADDED WALLET ADRESSS", res);
-        await fetchAttestation();
+        try {
+          console.log("createing wallted tnow");
+          // onsuccvess hook doesnt seem to work properoly with 19
+          const wallet = await createWallet();
+          console.log("created wallet", wallet);
+          console.log("adding wallte address");
+          const res = await addWalletAddress(session, {
+            address: wallet.address,
+          });
+          console.log("ADDED WALLET ADRESSS", res);
+          await fetchAttestation();
+        } catch (e) {
+          console.log("failed while creating wallet", e);
+        }
       }
     },
   });
