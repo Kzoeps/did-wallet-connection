@@ -2,7 +2,6 @@ import { useBlueskyAuth } from "@/providers/oauth-provider";
 import {
   addWalletAddress,
   getWalletAttestation,
-  type PasskeyWalletRes,
 } from "@/utils/passkey-actions";
 import {
   useCreateWallet,
