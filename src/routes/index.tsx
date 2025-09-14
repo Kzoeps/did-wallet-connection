@@ -10,7 +10,6 @@ import {
   useSignupWithPasskey,
   useUser,
 } from "@privy-io/react-auth";
-import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAddress } from "viem";
