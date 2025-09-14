@@ -111,6 +111,7 @@ function RouteComponent() {
           setConnectedIsAttested(
             getAddress(address as `0x${string}`) === getAddress(rec.address)
           );
+          handleCreateOrVerifyPasskey();
         } else {
           setConnectedIsAttested(false);
         }
