@@ -10,6 +10,7 @@ import {
   useSignupWithPasskey,
   useUser,
 } from "@privy-io/react-auth";
+import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAddress } from "viem";
@@ -48,7 +49,15 @@ function RouteComponent() {
         signedupUser?.linkedAccounts?.[0]?.type === "passkey" &&
         session
       ) {
-        await createWallet();
+        // onsuccvess hook doesnt seem to work properoly with 19
+        const wallet = await createWallet();
+        console.log("created wallet", wallet);
+        console.log("adding wallte address");
+        const res = await addWalletAddress(session, {
+          address: wallet.address,
+        });
+        console.log("ADDED WALLET ADRESSS", res);
+        await fetchAttestation();
       }
     },
   });
@@ -73,7 +82,7 @@ function RouteComponent() {
   const canLogin = useMemo(() => handle.trim().length > 0, [handle]);
 
   useEffect(() => {
-    if (user) setVerifyLoading(false);
+    if (user) console.log(user);
   }, [user]);
 
   // ---- Fetch attestation from repo (NO WebAuthn calls here) ----
