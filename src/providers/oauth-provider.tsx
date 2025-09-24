@@ -71,7 +71,7 @@ export function BlueskyAuthProvider({ children }: PropsWithChildren) {
       try {
         clientRef.current = new BrowserOAuthClient({
           clientMetadata: METADATA,
-          handleResolver: "https://bsky.social",
+          handleResolver: "https://climateai.org",
         });
 
         const result = await clientRef.current.init();
